@@ -97,6 +97,12 @@ pub fn checked_offset(val: usize, offset: i32) -> Option<usize> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Point {
+    pub x: usize,
+    pub y: usize,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
