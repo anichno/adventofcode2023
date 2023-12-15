@@ -26,6 +26,17 @@ pub trait Grid: Sized {
             cur_pos: 0,
         }
     }
+
+    fn iter_by_column(&self) -> Columns<Self> {
+        Columns {
+            grid: self,
+            cur_col: 0,
+        }
+    }
+
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
+    fn get_column(&self, col_idx: usize) -> Option<Vec<Self::Item>>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,6 +88,24 @@ where
     }
 }
 
+pub struct Columns<'a, G: Grid> {
+    grid: &'a G,
+    cur_col: usize,
+}
+
+impl<'a, G> Iterator for Columns<'a, G>
+where
+    G: Grid,
+{
+    type Item = Vec<G::Item>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ret = self.grid.get_column(self.cur_col);
+        self.cur_col += 1;
+        ret
+    }
+}
+
 impl<V> Grid for Vec<Vec<V>>
 where
     V: Clone,
@@ -85,6 +114,22 @@ where
 
     fn get_location(&self, x: usize, y: usize) -> Option<Self::Item> {
         self.get(y).and_then(|v| v.get(x)).cloned()
+    }
+
+    fn width(&self) -> usize {
+        self[0].len()
+    }
+
+    fn height(&self) -> usize {
+        self.len()
+    }
+
+    fn get_column(&self, col_idx: usize) -> Option<Vec<Self::Item>> {
+        if col_idx < self[0].len() {
+            Some(self.iter().map(|r| r[col_idx].clone()).collect())
+        } else {
+            None
+        }
     }
 }
 
