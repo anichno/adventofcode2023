@@ -148,6 +148,14 @@ pub struct Point {
     pub y: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
