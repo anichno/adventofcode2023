@@ -1,3 +1,5 @@
+// mod pathfinding;
+
 pub trait Grid: Sized {
     type Item;
     fn get_location(&self, x: usize, y: usize) -> Option<Self::Item>;
@@ -21,6 +23,14 @@ pub trait Grid: Sized {
 
     fn adjacents(&self, x: usize, y: usize) -> Adjacents<Self> {
         Adjacents {
+            grid: self,
+            center_loc: (x, y),
+            cur_pos: 0,
+        }
+    }
+
+    fn limited_adjacents(&self, x: usize, y: usize) -> LimitedAdjacents<Self> {
+        LimitedAdjacents {
             grid: self,
             center_loc: (x, y),
             cur_pos: 0,
@@ -88,6 +98,39 @@ where
     }
 }
 
+pub struct LimitedAdjacents<'a, G: Grid> {
+    grid: &'a G,
+    center_loc: (usize, usize),
+    cur_pos: usize,
+}
+
+impl<'a, G> Iterator for LimitedAdjacents<'a, G>
+where
+    G: Grid,
+{
+    type Item = Offset<G::Item>; //(usize, usize, G::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        const OFFSETS: [(i32, i32); 4] = [(0, -1), (-1, 0), (1, 0), (0, 1)];
+
+        let (x, y) = self.center_loc;
+
+        while self.cur_pos < 4 {
+            let (x_offset, y_offset) = OFFSETS[self.cur_pos];
+            self.cur_pos += 1;
+            if let Some(val) = self.grid.get_offset_location(x, x_offset, y, y_offset) {
+                return Some(Offset {
+                    x: checked_offset(x, x_offset).unwrap(),
+                    y: checked_offset(y, y_offset).unwrap(),
+                    val,
+                });
+            }
+        }
+
+        None
+    }
+}
+
 pub struct Columns<'a, G: Grid> {
     grid: &'a G,
     cur_col: usize,
@@ -107,6 +150,33 @@ where
 }
 
 impl<V> Grid for Vec<Vec<V>>
+where
+    V: Clone,
+{
+    type Item = V;
+
+    fn get_location(&self, x: usize, y: usize) -> Option<Self::Item> {
+        self.get(y).and_then(|v| v.get(x)).cloned()
+    }
+
+    fn width(&self) -> usize {
+        self[0].len()
+    }
+
+    fn height(&self) -> usize {
+        self.len()
+    }
+
+    fn get_column(&self, col_idx: usize) -> Option<Vec<Self::Item>> {
+        if col_idx < self[0].len() {
+            Some(self.iter().map(|r| r[col_idx].clone()).collect())
+        } else {
+            None
+        }
+    }
+}
+
+impl<V> Grid for &[Vec<V>]
 where
     V: Clone,
 {
@@ -154,6 +224,19 @@ pub enum Direction {
     Right,
     Down,
     Left,
+}
+
+pub fn gcd(mut a: u64, mut b: u64) -> u64 {
+    while a > 0 && b > 0 {
+        (a, b) = (a.max(b), a.min(b));
+        (a, b) = (b, a % b);
+    }
+
+    a
+}
+
+pub fn lcm(a: u64, b: u64) -> u64 {
+    (a * b) / gcd(a, b)
 }
 
 #[cfg(test)]
